@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iris Flower Classifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #f093fb, #f5576c, #fda085);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #aaa;
+            font-size: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px 28px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f5576c;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 28px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #f093fb;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #bbb;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group .range-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-group input[type="range"] {
+            flex: 1;
+            accent-color: #f5576c;
+            height: 6px;
+        }
+
+        .form-group .range-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .form-group .range-bounds {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .predict-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f5576c, #f093fb);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .result-box {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .result-box.active { display: block; }
+
+        .result-species {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .result-species.setosa { background: rgba(231, 76, 60, 0.15); border: 1px solid rgba(231, 76, 60, 0.3); }
+        .result-species.versicolor { background: rgba(52, 152, 219, 0.15); border: 1px solid rgba(52, 152, 219, 0.3); }
+        .result-species.virginica { background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); }
+
+        .result-species h3 {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+
+        .result-species.setosa h3 { color: #e74c3c; }
+        .result-species.versicolor h3 { color: #3498db; }
+        .result-species.virginica h3 { color: #2ecc71; }
+
+        .prob-bars { display: flex; flex-direction: column; gap: 10px; }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prob-label {
+            width: 80px;
+            font-size: 0.85rem;
+            color: #bbb;
+        }
+
+        .prob-track {
+            flex: 1;
+            height: 22px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 11px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            border-radius: 11px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .prob-fill.setosa { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+        .prob-fill.versicolor { background: linear-gradient(90deg, #2980b9, #3498db); }
+        .prob-fill.virginica { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+
+        .flower-img-container {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .flower-img-container img {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.1);
+        }
+
+        .viz-section {
+            margin-bottom: 40px;
+        }
+
+        .viz-section h2 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 24px;
+            color: #f093fb;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .viz-grid { grid-template-columns: 1fr; }
+        }
+
+        .viz-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .viz-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .viz-card img {
+            width: 100%;
+            display: block;
+        }
+
+        .viz-card .caption {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #aaa;
+            text-align: center;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        .iris-images {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Iris Flower Classifier</h1>
+    <p>Multilayer Perceptron with Backpropagation &mdash; Built from Scratch in Python</p>
+</div>
+
+<div class="container">
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="value">{{ stats.test_accuracy }}%</div>
+            <div class="label">Test Accuracy</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats.architecture | join(' → ') }}</div>
+            <div class="label">Architecture</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats.epochs }}</div>
+            <div class="label">Epochs Trained</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ stats.final_loss }}</div>
+            <div class="label">Final Loss</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="panel">
+            <h2>Predict a Flower</h2>
+
+            <div class="form-group">
+                <label>Sepal Length (cm)</label>
+                <div class="range-row">
+                    <input type="range" id="sepal_length" min="4.0" max="8.0" step="0.1" value="5.8">
+                    <span class="range-value" id="sepal_length_val">5.8</span>
+                </div>
+                <div class="range-bounds"><span>4.0</span><span>8.0</span></div>
+            </div>
+
+            <div class="form-group">
+                <label>Sepal Width (cm)</label>
+                <div class="range-row">
+                    <input type="range" id="sepal_width" min="2.0" max="4.5" step="0.1" value="3.0">
+                    <span class="range-value" id="sepal_width_val">3.0</span>
+                </div>
+                <div class="range-bounds"><span>2.0</span><span>4.5</span></div>
+            </div>
+
+            <div class="form-group">
+                <label>Petal Length (cm)</label>
+                <div class="range-row">
+                    <input type="range" id="petal_length" min="1.0" max="7.0" step="0.1" value="4.0">
+                    <span class="range-value" id="petal_length_val">4.0</span>
+                </div>
+                <div class="range-bounds"><span>1.0</span><span>7.0</span></div>
+            </div>
+
+            <div class="form-group">
+                <label>Petal Width (cm)</label>
+                <div class="range-row">
+                    <input type="range" id="petal_width" min="0.1" max="2.5" step="0.1" value="1.2">
+                    <span class="range-value" id="petal_width_val">1.2</span>
+                </div>
+                <div class="range-bounds"><span>0.1</span><span>2.5</span></div>
+            </div>
+
+            <button class="predict-btn" onclick="predict()">Classify Flower</button>
+
+            <div class="result-box" id="resultBox">
+                <div class="result-species" id="resultSpecies">
+                    <h3 id="resultName"></h3>
+                    <p id="resultDesc" style="font-size: 0.85rem; color: #ccc;"></p>
+                </div>
+                <div class="prob-bars">
+                    <div class="prob-row">
+                        <span class="prob-label">Setosa</span>
+                        <div class="prob-track">
+                            <div class="prob-fill setosa" id="probSetosa" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-row">
+                        <span class="prob-label">Versicolor</span>
+                        <div class="prob-track">
+                            <div class="prob-fill versicolor" id="probVersicolor" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="prob-row">
+                        <span class="prob-label">Virginica</span>
+                        <div class="prob-track">
+                            <div class="prob-fill virginica" id="probVirginica" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Network Architecture</h2>
+            <img src="/static/network_architecture.png" alt="Network Architecture" style="width: 100%; border-radius: 8px;">
+        </div>
+    </div>
+
+    <div class="viz-section">
+        <h2>Training Visualizations</h2>
+        <div class="viz-grid">
+            <div class="viz-card">
+                <img src="/static/loss_curve.png" alt="Loss Curve">
+                <div class="caption">Cross-entropy loss decreasing over training epochs</div>
+            </div>
+            <div class="viz-card">
+                <img src="/static/accuracy_curve.png" alt="Accuracy Curve">
+                <div class="caption">Training accuracy improving with each epoch</div>
+            </div>
+            <div class="viz-card">
+                <img src="/static/confusion_matrix.png" alt="Confusion Matrix">
+                <div class="caption">Confusion matrix on test set &mdash; correct predictions on the diagonal</div>
+            </div>
+            <div class="viz-card">
+                <img src="/static/decision_boundary.png" alt="Decision Boundary">
+                <div class="caption">Decision boundaries for feature pairs showing class separation</div>
+            </div>
+            <div class="viz-card" style="grid-column: 1 / -1;">
+                <img src="/static/feature_distribution.png" alt="Feature Distribution">
+                <div class="caption">Distribution of each feature across the three Iris species</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    Soft Computing Project &mdash; Iris Flower Classifier using MLP with Backpropagation (Built from Scratch)
+</div>
+
+<script>
+    const descriptions = {
+        "Setosa": "Small petals, easily separable from other species",
+        "Versicolor": "Medium-sized petals, intermediate features",
+        "Virginica": "Large petals, often confused with Versicolor"
+    };
+
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+        const valSpan = document.getElementById(input.id + '_val');
+        input.addEventListener('input', () => {
+            valSpan.textContent = parseFloat(input.value).toFixed(1);
+        });
+    });
+
+    async function predict() {
+        const data = {
+            sepal_length: document.getElementById('sepal_length').value,
+            sepal_width: document.getElementById('sepal_width').value,
+            petal_length: document.getElementById('petal_length').value,
+            petal_width: document.getElementById('petal_width').value,
+        };
+
+        const res = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const result = await res.json();
+        const box = document.getElementById('resultBox');
+        const species = document.getElementById('resultSpecies');
+        const name = document.getElementById('resultName');
+        const desc = document.getElementById('resultDesc');
+
+        box.classList.add('active');
+        species.className = 'result-species ' + result.class.toLowerCase();
+        name.textContent = 'Iris ' + result.class;
+        desc.textContent = descriptions[result.class];
+
+        document.getElementById('probSetosa').style.width = result.probabilities.Setosa + '%';
+        document.getElementById('probSetosa').textContent = result.probabilities.Setosa + '%';
+        document.getElementById('probVersicolor').style.width = result.probabilities.Versicolor + '%';
+        document.getElementById('probVersicolor').textContent = result.probabilities.Versicolor + '%';
+        document.getElementById('probVirginica').style.width = result.probabilities.Virginica + '%';
+        document.getElementById('probVirginica').textContent = result.probabilities.Virginica + '%';
+    }
+</script>
+
+</body>
+</html>

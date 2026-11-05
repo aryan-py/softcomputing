@@ -1,0 +1,1 @@
+{"test_accuracy": 96.7, "train_samples": 120, "test_samples": 30, "epochs": 2000, "learning_rate": 0.05, "architecture": [4, 8, 8, 3], "final_loss": 0.1532, "final_train_accuracy": 96.7}
